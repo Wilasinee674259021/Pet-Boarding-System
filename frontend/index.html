@@ -42,6 +42,11 @@
                     <span>สัตว์เลี้ยง</span>
                 </button>
 
+                <button class="menu-item" onclick="showPage('boarding', this)">
+                    <span>🐾</span>
+                    <span>รับฝากสัตว์</span>
+                </button>
+
                 <button class="menu-item" onclick="showPage('bookings', this)">
                     <span>📅</span>
                     <span>การจอง</span>
@@ -299,6 +304,268 @@
 
             </section>
 
+
+
+            <!-- ================= QUICK BOARDING ================= -->
+            <section id="boarding" class="page">
+
+                <div class="boarding-hero">
+                    <div class="boarding-hero-text">
+                        <div class="boarding-kicker">PET CARE • CHECK-IN</div>
+                        <h3>รับฝากสัตว์เลี้ยง</h3>
+                        <p>ค้นหาลูกค้าเดิม เลือกสัตว์เลี้ยง แล้วทำรายการฝากได้ในขั้นตอนเดียว</p>
+                    </div>
+                    <div class="boarding-hero-icon">🐾</div>
+                </div>
+
+                <form id="quickBoardingForm" class="boarding-shell" onsubmit="saveQuickBoarding(event)">
+
+                    <div class="boarding-main">
+
+                        <!-- CUSTOMER -->
+                        <div class="boarding-card">
+                            <div class="boarding-card-head">
+                                <div class="step-badge">01</div>
+                                <div>
+                                    <h3>เลือกลูกค้า</h3>
+                                    <p>ค้นหาลูกค้าเก่าจากชื่อหรือเบอร์โทร</p>
+                                </div>
+                                <button type="button" class="outline-button"
+                                        onclick="toggleQuickNewCustomer()">＋ ลูกค้าใหม่</button>
+                            </div>
+
+                            <div class="customer-search-box">
+                                <span>⌕</span>
+                                <input id="quickCustomerSearch" type="text"
+                                       placeholder="ค้นหาชื่อลูกค้า หรือเบอร์โทรศัพท์..."
+                                       autocomplete="off"
+                                       onfocus="filterQuickCustomers()"
+                                       oninput="filterQuickCustomers()">
+                                <button type="button" onclick="clearQuickCustomerSearch()" aria-label="ล้าง">×</button>
+                            </div>
+
+                            <div class="search-hint">พิมพ์อย่างน้อย 1 ตัวอักษร ระบบจะแสดงลูกค้าที่ตรงกัน</div>
+
+                            <div id="quickCustomerResults" class="customer-results-panel"></div>
+
+                            <div id="quickNewCustomerBox" class="inline-new-box">
+                                <div class="inline-title">เพิ่มข้อมูลลูกค้าใหม่</div>
+                                <div class="form-grid-2">
+                                    <div class="form-group">
+                                        <label>ชื่อ-นามสกุล <b>*</b></label>
+                                        <input id="quickNewCustomerName" type="text" placeholder="เช่น สมชาย ใจดี">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>เบอร์โทรศัพท์ <b>*</b></label>
+                                        <input id="quickNewCustomerPhone" type="tel" placeholder="08xxxxxxxx">
+                                    </div>
+                                </div>
+                                <div class="form-grid-2">
+                                    <div class="form-group">
+                                        <label>Email</label>
+                                        <input id="quickNewCustomerEmail" type="email" placeholder="example@email.com">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>ที่อยู่</label>
+                                        <input id="quickNewCustomerAddress" type="text" placeholder="ที่อยู่">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="selectedCustomerBox" class="selected-customer-card empty-selected">
+                                <div class="selected-avatar">👤</div>
+                                <div class="selected-content">
+                                    <span>ลูกค้าที่เลือก</span>
+                                    <strong>ยังไม่ได้เลือกลูกค้า</strong>
+                                    <small>เลือกจากรายการด้านบน</small>
+                                </div>
+                                <button type="button" class="change-selection" onclick="clearQuickCustomer()">เปลี่ยน</button>
+                            </div>
+                        </div>
+
+                        <!-- PET -->
+                        <div class="boarding-card">
+                            <div class="boarding-card-head">
+                                <div class="step-badge">02</div>
+                                <div>
+                                    <h3>เลือกสัตว์เลี้ยง</h3>
+                                    <p>สัตว์เลี้ยงของลูกค้าที่เลือกจะแสดงตรงนี้</p>
+                                </div>
+                            </div>
+
+                            <div id="quickPetArea">
+                                <div class="form-group pet-select-group">
+                                    <label>สัตว์เลี้ยงเดิม</label>
+                                    <select id="quickPetSelect" onchange="selectQuickPet()">
+                                        <option value="">เลือกสัตว์เลี้ยงของลูกค้า...</option>
+                                    </select>
+                                </div>
+
+                                <div id="quickPetInfo" class="pet-detail-card">
+                                    <div class="pet-detail-icon">🐾</div>
+                                    <div class="pet-detail-main">
+                                        <span>ข้อมูลสัตว์เลี้ยง</span>
+                                        <strong id="quickPetNameDisplay">ยังไม่ได้เลือก</strong>
+                                    </div>
+                                    <div class="pet-detail-meta">
+                                        <div><small>ประเภท</small><b id="quickPetTypeDisplay">-</b></div>
+                                        <div><small>สายพันธุ์</small><b id="quickPetBreedDisplay">-</b></div>
+                                    </div>
+                                </div>
+
+                                <div class="new-pet-divider"><span>หรือ</span></div>
+
+                                <button type="button" class="new-pet-button" onclick="toggleQuickNewPet()">
+                                    <span>＋</span>
+                                    <div>
+                                        <strong>เพิ่มสัตว์เลี้ยงใหม่</strong>
+                                        <small>ยังไม่มีข้อมูลสัตว์ตัวนี้ในระบบ</small>
+                                    </div>
+                                </button>
+
+                                <div id="quickNewPetBox" class="inline-new-box">
+                                    <div class="inline-title">ข้อมูลสัตว์เลี้ยงใหม่</div>
+
+                                    <div class="form-grid-2">
+                                        <div class="form-group">
+                                            <label>ชื่อสัตว์ <b>*</b></label>
+                                            <input id="quickNewPetName" type="text" placeholder="เช่น มะลิ">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>ประเภทสัตว์ <b>*</b></label>
+                                            <select id="quickNewPetType" onchange="updateQuickNewPetPreview()">
+                                                <option value="">เลือกประเภทสัตว์เลี้ยง</option>
+                                                <option value="Dog">🐶 สุนัข</option>
+                                                <option value="Cat">🐱 แมว</option>
+                                                <option value="Rabbit">🐰 กระต่าย</option>
+                                                <option value="Hamster">🐹 แฮมสเตอร์</option>
+                                                <option value="Bird">🐦 นก</option>
+                                                <option value="Turtle">🐢 เต่า</option>
+                                                <option value="Fish">🐠 ปลา</option>
+                                                <option value="Guinea Pig">🐹 หนูตะเภา</option>
+                                                <option value="Other">🐾 อื่น ๆ</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="animal-type-chips">
+                                        <span>ประเภทที่รองรับ</span>
+                                        <button type="button" onclick="choosePetType('Dog')">🐶 สุนัข</button>
+                                        <button type="button" onclick="choosePetType('Cat')">🐱 แมว</button>
+                                        <button type="button" onclick="choosePetType('Rabbit')">🐰 กระต่าย</button>
+                                        <button type="button" onclick="choosePetType('Bird')">🐦 นก</button>
+                                        <button type="button" onclick="choosePetType('Other')">🐾 อื่น ๆ</button>
+                                    </div>
+
+                                    <div class="form-grid-2">
+                                        <div class="form-group">
+                                            <label>สายพันธุ์</label>
+                                            <input id="quickNewPetBreed" type="text" placeholder="เช่น Golden Retriever">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>อายุ</label>
+                                            <input id="quickNewPetAge" type="number" min="0" placeholder="อายุเป็นปี">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- STAY -->
+                        <div class="boarding-card">
+                            <div class="boarding-card-head">
+                                <div class="step-badge">03</div>
+                                <div>
+                                    <h3>รายละเอียดการฝาก</h3>
+                                    <p>กำหนดวันเข้าพักและบริการ</p>
+                                </div>
+                            </div>
+
+                            <div class="form-grid-2">
+                                <div class="form-group">
+                                    <label>วันเช็กอิน <b>*</b></label>
+                                    <input id="quickCheckIn" type="date" required onchange="updateQuickPrice()">
+                                </div>
+                                <div class="form-group">
+                                    <label>วันเช็กเอาต์ <b>*</b></label>
+                                    <input id="quickCheckOut" type="date" required onchange="updateQuickPrice()">
+                                </div>
+                            </div>
+
+                            <div class="form-grid-2">
+                                <div class="form-group">
+                                    <label>บริการ <b>*</b></label>
+                                    <select id="quickServiceType" onchange="updateQuickPrice()">
+                                        <option value="ฝากเลี้ยงมาตรฐาน" data-price="300">🏠 ฝากเลี้ยงมาตรฐาน — ฿300/วัน</option>
+                                        <option value="ฝากเลี้ยงพิเศษ" data-price="450">⭐ ฝากเลี้ยงพิเศษ — ฿450/วัน</option>
+                                        <option value="ฝากเลี้ยง VIP" data-price="650">👑 ฝากเลี้ยง VIP — ฿650/วัน</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>ราคา / วัน</label>
+                                    <div class="price-input">
+                                        <span>฿</span>
+                                        <input id="quickPricePerDay" type="number" min="0" value="300" oninput="updateQuickPrice()">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>หมายเหตุเพิ่มเติม</label>
+                                <textarea id="quickNotes" rows="3" placeholder="เช่น แพ้อาหาร, กินอาหารเวลา 18:00 น., ต้องให้ยา..."></textarea>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- SUMMARY -->
+                    <aside class="boarding-summary">
+                        <div class="summary-card-head">
+                            <div class="summary-paw">🐾</div>
+                            <div>
+                                <span>BOOKING SUMMARY</span>
+                                <h3>สรุปการฝากเลี้ยง</h3>
+                            </div>
+                        </div>
+
+                        <div class="summary-customer" id="quickSummaryPerson">
+                            <div class="summary-avatar">👤</div>
+                            <div>
+                                <small>ลูกค้า</small>
+                                <strong>ยังไม่ได้เลือก</strong>
+                            </div>
+                        </div>
+
+                        <div class="summary-pet" id="quickSummaryPet">
+                            <div class="summary-avatar pet">🐶</div>
+                            <div>
+                                <small>สัตว์เลี้ยง</small>
+                                <strong>ยังไม่ได้เลือก</strong>
+                            </div>
+                        </div>
+
+                        <div class="summary-details">
+                            <div><span>วันเข้าพัก</span><strong id="quickSummaryDates">-</strong></div>
+                            <div><span>จำนวนวัน</span><strong id="quickSummaryDays">0 วัน</strong></div>
+                            <div><span>บริการ</span><strong id="quickSummaryService">-</strong></div>
+                        </div>
+
+                        <div class="summary-total-new">
+                            <span>ยอดรวม</span>
+                            <strong id="quickSummaryTotal">฿0</strong>
+                        </div>
+
+                        <button type="button" class="summary-clear-button" onclick="resetQuickBoarding()">↻ ล้างข้อมูล</button>
+                        <button type="submit" class="summary-submit-button">✓ ยืนยันการฝากเลี้ยง</button>
+
+                        <div class="summary-note">
+                            <span>🔒</span>
+                            <p>ข้อมูลจะถูกบันทึกลงฐานข้อมูลทันทีหลังยืนยัน</p>
+                        </div>
+                    </aside>
+
+                </form>
+            </section>
 
             <!-- ================= BOOKINGS ================= -->
             <section id="bookings" class="page">
