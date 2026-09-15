@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>PetCare Boarding</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="app">
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+
+            <div class="logo">
+                <div class="logo-icon">🐾</div>
+
+                <div>
+                    <h1>PetCare</h1>
+                    <span>Boarding System</span>
+                </div>
+            </div>
+
+            <nav class="menu">
+
+                <button class="menu-item active" onclick="showPage('dashboard', this)">
+                    <span>📊</span>
+                    <span>Dashboard</span>
+                </button>
+
+                <button class="menu-item" onclick="showPage('customers', this)">
+                    <span>👤</span>
+                    <span>ลูกค้า</span>
+                </button>
+
+                <button class="menu-item" onclick="showPage('pets', this)">
+                    <span>🐶</span>
+                    <span>สัตว์เลี้ยง</span>
+                </button>
+
+                <button class="menu-item" onclick="showPage('bookings', this)">
+                    <span>📅</span>
+                    <span>การจอง</span>
+                </button>
+
+            </nav>
+
+            <div class="sidebar-bottom">
+                <div class="staff-card">
+                    <div class="staff-avatar">A</div>
+
+                    <div>
+                        <strong>Staff</strong>
+                        <small>เจ้าหน้าที่</small>
+                    </div>
+                </div>
+            </div>
+
+        </aside>
+
+
+        <!-- MAIN -->
+        <main class="main">
+
+            <!-- HEADER -->
+            <header class="header">
+
+                <div>
+                    <h2 id="pageTitle">Dashboard</h2>
+                    <p id="pageDescription">
+                        ภาพรวมระบบรับฝากเลี้ยงสัตว์
+                    </p>
+                </div>
+
+                <div class="header-right">
+                    <div class="status">
+                        <span class="status-dot"></span>
+                        System Online
+                    </div>
+
+                    <div class="date" id="currentDate"></div>
+                </div>
+
+            </header>
+
+
+            <!-- ================= DASHBOARD ================= -->
+            <section id="dashboard" class="page active-page">
+
+                <div class="welcome">
+                    <div>
+                        <span class="welcome-label">WELCOME BACK 👋</span>
+                        <h3>ระบบรับฝากเลี้ยงสัตว์</h3>
+                        <p>จัดการลูกค้า สัตว์เลี้ยง และการจองได้จากที่เดียว</p>
+                    </div>
+
+                    <div class="welcome-icon">
+                        🐕
+                    </div>
+                </div>
+
+
+                <div class="stats">
+
+                    <div class="stat-card">
+                        <div class="stat-icon purple">👤</div>
+
+                        <div>
+                            <span>ลูกค้าทั้งหมด</span>
+                            <strong id="customerCount">0</strong>
+                        </div>
+                    </div>
+
+
+                    <div class="stat-card">
+                        <div class="stat-icon blue">🐾</div>
+
+                        <div>
+                            <span>สัตว์เลี้ยงทั้งหมด</span>
+                            <strong id="petCount">0</strong>
+                        </div>
+                    </div>
+
+
+                    <div class="stat-card">
+                        <div class="stat-icon orange">📅</div>
+
+                        <div>
+                            <span>การจองทั้งหมด</span>
+                            <strong id="bookingCount">0</strong>
+                        </div>
+                    </div>
+
+
+                    <div class="stat-card">
+                        <div class="stat-icon green">💰</div>
+
+                        <div>
+                            <span>รายได้ทั้งหมด</span>
+                            <strong id="revenue">฿0</strong>
+                        </div>
+                    </div>
+
+                </div>
+
+
+                <div class="dashboard-grid">
+
+                    <div class="panel">
+
+                        <div class="panel-header">
+                            <div>
+                                <h3>การจองล่าสุด</h3>
+                                <p>รายการรับฝากล่าสุด</p>
+                            </div>
+
+                            <button class="text-button"
+                                    onclick="showPage('bookings')">
+                                ดูทั้งหมด →
+                            </button>
+                        </div>
+
+                        <div id="recentBookings" class="empty-state">
+                            <div>📅</div>
+                            <p>ยังไม่มีข้อมูลการจอง</p>
+                        </div>
+
+                    </div>
+
+
+                    <div class="panel">
+
+                        <div class="panel-header">
+                            <div>
+                                <h3>ระบบ</h3>
+                                <p>สถานะการทำงาน</p>
+                            </div>
+                        </div>
+
+                        <div class="system-list">
+
+                            <div class="system-row">
+                                <span>Backend API</span>
+                                <strong class="online">Online</strong>
+                            </div>
+
+                            <div class="system-row">
+                                <span>Database</span>
+                                <strong class="online">SQLite</strong>
+                            </div>
+
+                            <div class="system-row">
+                                <span>Frontend</span>
+                                <strong class="online">Running</strong>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- ================= CUSTOMERS ================= -->
+            <section id="customers" class="page">
+
+                <div class="page-top">
+
+                    <div>
+                        <h3>จัดการลูกค้า</h3>
+                        <p>ข้อมูลเจ้าของสัตว์เลี้ยง</p>
+                    </div>
+
+                    <button class="primary-button"
+                            onclick="openCustomerModal()">
+                        + เพิ่มลูกค้า
+                    </button>
+
+                </div>
+
+
+                <div class="panel">
+
+                    <div class="table-wrapper">
+
+                        <table>
+
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>ชื่อลูกค้า</th>
+                                    <th>เบอร์โทรศัพท์</th>
+                                    <th>จัดการ</th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="customerTable">
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- ================= PETS ================= -->
+            <section id="pets" class="page">
+
+                <div class="page-top">
+
+                    <div>
+                        <h3>จัดการสัตว์เลี้ยง</h3>
+                        <p>ข้อมูลสัตว์เลี้ยงของลูกค้า</p>
+                    </div>
+
+                    <button class="primary-button"
+                            onclick="openPetModal()">
+                        + เพิ่มสัตว์เลี้ยง
+                    </button>
+
+                </div>
+
+
+                <div class="panel">
+
+                    <div class="table-wrapper">
+
+                        <table>
+
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>ชื่อ</th>
+                                    <th>ประเภท</th>
+                                    <th>สายพันธุ์</th>
+                                    <th>อายุ</th>
+                                    <th>เจ้าของ</th>
+                                    <th>จัดการ</th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="petTable">
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- ================= BOOKINGS ================= -->
+            <section id="bookings" class="page">
+
+                <div class="page-top">
+
+                    <div>
+                        <h3>การจองรับฝาก</h3>
+                        <p>จัดการรายการรับฝากสัตว์เลี้ยง</p>
+                    </div>
+
+                    <button class="primary-button"
+                            onclick="openBookingModal()">
+                        + สร้างการจอง
+                    </button>
+
+                </div>
+
+
+                <div class="panel">
+
+                    <div class="table-wrapper">
+
+                        <table>
+
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>สัตว์เลี้ยง</th>
+                                    <th>เจ้าของ</th>
+                                    <th>เช็กอิน</th>
+                                    <th>เช็กเอาต์</th>
+                                    <th>บริการ</th>
+                                    <th>ราคา</th>
+                                    <th>สถานะ</th>
+                                    <th>จัดการ</th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="bookingTable">
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+        </main>
+
+    </div>
+
+
+    <!-- ================= MODAL ================= -->
+
+    <div id="modalOverlay" class="modal-overlay">
+
+        <div class="modal">
+
+            <div class="modal-header">
+
+                <div>
+                    <h3 id="modalTitle">เพิ่มข้อมูล</h3>
+                    <p id="modalSubtitle">กรอกข้อมูลด้านล่าง</p>
+                </div>
+
+                <button class="close-button"
+                        onclick="closeModal()">
+                    ×
+                </button>
+
+            </div>
+
+            <div id="modalBody"></div>
+
+        </div>
+
+    </div>
+
+
+    <script src="app.js"></script>
+
+</body>
+</html>
