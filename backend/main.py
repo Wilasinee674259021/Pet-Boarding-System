@@ -3,16 +3,68 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from sqlalchemy import func
+import os
+
+
+# ==========================================================
+# APP
+# ==========================================================
 
 app = Flask(__name__)
 
 CORS(app)
 
+
 # ==========================================================
-# DATABASE
+# DATABASE CONFIGURATION
 # ==========================================================
 
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///pet_boarding.db"
+# ถ้า Render มี DATABASE_URL
+# จะใช้ PostgreSQL
+#
+# ถ้าไม่มี DATABASE_URL
+# จะใช้ SQLite สำหรับรันในเครื่อง
+
+database_url = os.environ.get("DATABASE_URL")
+
+if database_url:
+    # Render บางกรณีอาจส่งมาเป็น postgres://
+    # SQLAlchemy รุ่นใหม่ต้องการ postgresql://
+    if database_url.startswith("postgres://"):
+        database_url = database_url.replace(
+            "postgres://",
+            "postgresql://",
+            1
+        )
+
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+
+else:
+    # SQLite สำหรับเครื่อง Local
+    base_dir = os.path.abspath(
+        os.path.dirname(__file__)
+    )
+
+    instance_dir = os.path.join(
+        base_dir,
+        "instance"
+    )
+
+    os.makedirs(
+        instance_dir,
+        exist_ok=True
+    )
+
+    database_path = os.path.join(
+        instance_dir,
+        "pet_boarding.db"
+    )
+
+    app.config["SQLALCHEMY_DATABASE_URI"] = (
+        "sqlite:///" + database_path
+    )
+
+
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
@@ -26,7 +78,10 @@ class Customer(db.Model):
 
     __tablename__ = "customers"
 
-    customer_id = db.Column(db.Integer, primary_key=True)
+    customer_id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
 
     name = db.Column(
         db.String(100),
@@ -67,7 +122,9 @@ class Customer(db.Model):
             "email": self.email,
             "address": self.address,
             "createdAt": (
-                self.created_at.strftime("%Y-%m-%d %H:%M:%S")
+                self.created_at.strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                )
                 if self.created_at
                 else None
             )
@@ -140,7 +197,11 @@ class Pet(db.Model):
         return {
             "petId": self.pet_id,
             "customerId": self.customer_id,
-            "customerName": self.customer.name,
+            "customerName": (
+                self.customer.name
+                if self.customer
+                else None
+            ),
             "name": self.name,
             "type": self.pet_type,
             "breed": self.breed,
@@ -149,7 +210,9 @@ class Pet(db.Model):
             "weight": self.weight,
             "notes": self.notes,
             "createdAt": (
-                self.created_at.strftime("%Y-%m-%d %H:%M:%S")
+                self.created_at.strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                )
                 if self.created_at
                 else None
             )
@@ -228,9 +291,21 @@ class Booking(db.Model):
         return {
             "bookingId": self.booking_id,
             "petId": self.pet_id,
-            "petName": self.pet.name,
-            "customerId": self.pet.customer_id,
-            "customerName": self.pet.customer.name,
+            "petName": (
+                self.pet.name
+                if self.pet
+                else None
+            ),
+            "customerId": (
+                self.pet.customer_id
+                if self.pet
+                else None
+            ),
+            "customerName": (
+                self.pet.customer.name
+                if self.pet and self.pet.customer
+                else None
+            ),
             "checkInDate": self.check_in_date,
             "checkOutDate": self.check_out_date,
             "serviceType": self.service_type,
@@ -239,7 +314,9 @@ class Booking(db.Model):
             "status": self.status,
             "notes": self.notes,
             "createdAt": (
-                self.created_at.strftime("%Y-%m-%d %H:%M:%S")
+                self.created_at.strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                )
                 if self.created_at
                 else None
             )
@@ -299,7 +376,9 @@ class Payment(db.Model):
             "paymentMethod": self.payment_method,
             "paymentStatus": self.payment_status,
             "paidAt": (
-                self.paid_at.strftime("%Y-%m-%d %H:%M:%S")
+                self.paid_at.strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                )
                 if self.paid_at
                 else None
             ),
@@ -308,7 +387,7 @@ class Payment(db.Model):
 
 
 # ==========================================================
-# CREATE DATABASE
+# CREATE DATABASE TABLES
 # ==========================================================
 
 with app.app_context():
@@ -322,10 +401,16 @@ with app.app_context():
 @app.route("/")
 def home():
 
+    database_type = (
+        "PostgreSQL"
+        if database_url
+        else "SQLite"
+    )
+
     return jsonify({
         "message": "Pet Boarding System API",
         "status": "running",
-        "database": "SQLite"
+        "database": database_type
     })
 
 
@@ -346,12 +431,19 @@ def get_customers():
     ])
 
 
-@app.route("/api/customers/<int:customer_id>", methods=["GET"])
+@app.route(
+    "/api/customers/<int:customer_id>",
+    methods=["GET"]
+)
 def get_customer(customer_id):
 
-    customer = Customer.query.get_or_404(customer_id)
+    customer = Customer.query.get_or_404(
+        customer_id
+    )
 
-    return jsonify(customer.get_info())
+    return jsonify(
+        customer.get_info()
+    )
 
 
 @app.route("/api/customers", methods=["POST"])
@@ -378,10 +470,15 @@ def create_customer():
     db.session.add(customer)
     db.session.commit()
 
-    return jsonify(customer.get_info()), 201
+    return jsonify(
+        customer.get_info()
+    ), 201
 
 
-@app.route("/api/customers/<int:customer_id>", methods=["PUT"])
+@app.route(
+    "/api/customers/<int:customer_id>",
+    methods=["PUT"]
+)
 def update_customer(customer_id):
 
     customer = Customer.query.get_or_404(
@@ -404,10 +501,15 @@ def update_customer(customer_id):
 
     db.session.commit()
 
-    return jsonify(customer.get_info())
+    return jsonify(
+        customer.get_info()
+    )
 
 
-@app.route("/api/customers/<int:customer_id>", methods=["DELETE"])
+@app.route(
+    "/api/customers/<int:customer_id>",
+    methods=["DELETE"]
+)
 def delete_customer(customer_id):
 
     customer = Customer.query.get_or_404(
@@ -439,14 +541,19 @@ def get_pets():
     ])
 
 
-@app.route("/api/pets/<int:pet_id>", methods=["GET"])
+@app.route(
+    "/api/pets/<int:pet_id>",
+    methods=["GET"]
+)
 def get_pet(pet_id):
 
     pet = Pet.query.get_or_404(
         pet_id
     )
 
-    return jsonify(pet.get_info())
+    return jsonify(
+        pet.get_info()
+    )
 
 
 @app.route("/api/pets", methods=["POST"])
@@ -459,16 +566,19 @@ def create_pet():
     pet_type = data.get("type")
 
     if not customer_id:
+
         return jsonify({
             "error": "Customer is required"
         }), 400
 
     if not name:
+
         return jsonify({
             "error": "Pet name is required"
         }), 400
 
     if not pet_type:
+
         return jsonify({
             "error": "Pet type is required"
         }), 400
@@ -497,10 +607,15 @@ def create_pet():
     db.session.add(pet)
     db.session.commit()
 
-    return jsonify(pet.get_info()), 201
+    return jsonify(
+        pet.get_info()
+    ), 201
 
 
-@app.route("/api/pets/<int:pet_id>", methods=["PUT"])
+@app.route(
+    "/api/pets/<int:pet_id>",
+    methods=["PUT"]
+)
 def update_pet(pet_id):
 
     pet = Pet.query.get_or_404(
@@ -546,10 +661,15 @@ def update_pet(pet_id):
 
     db.session.commit()
 
-    return jsonify(pet.get_info())
+    return jsonify(
+        pet.get_info()
+    )
 
 
-@app.route("/api/pets/<int:pet_id>", methods=["DELETE"])
+@app.route(
+    "/api/pets/<int:pet_id>",
+    methods=["DELETE"]
+)
 def delete_pet(pet_id):
 
     pet = Pet.query.get_or_404(
@@ -581,14 +701,19 @@ def get_bookings():
     ])
 
 
-@app.route("/api/bookings/<int:booking_id>", methods=["GET"])
+@app.route(
+    "/api/bookings/<int:booking_id>",
+    methods=["GET"]
+)
 def get_booking(booking_id):
 
     booking = Booking.query.get_or_404(
         booking_id
     )
 
-    return jsonify(booking.get_info())
+    return jsonify(
+        booking.get_info()
+    )
 
 
 @app.route("/api/bookings", methods=["POST"])
@@ -601,6 +726,7 @@ def create_booking():
     check_out = data.get("checkOutDate")
 
     if not pet_id:
+
         return jsonify({
             "error": "Pet is required"
         }), 400
@@ -649,9 +775,23 @@ def create_booking():
             "error": "Check-out date must be after check-in date"
         }), 400
 
-    price_per_day = float(
-        data.get("pricePerDay", 300)
-    )
+    try:
+
+        price_per_day = float(
+            data.get(
+                "pricePerDay",
+                300
+            )
+        )
+
+    except (
+        ValueError,
+        TypeError
+    ):
+
+        return jsonify({
+            "error": "Invalid price"
+        }), 400
 
     if price_per_day < 0:
 
@@ -659,9 +799,7 @@ def create_booking():
             "error": "Price cannot be negative"
         }), 400
 
-    total_price = (
-        days * price_per_day
-    )
+    total_price = days * price_per_day
 
     booking = Booking(
         pet_id=pet_id,
@@ -688,7 +826,10 @@ def create_booking():
     ), 201
 
 
-@app.route("/api/bookings/<int:booking_id>", methods=["PUT"])
+@app.route(
+    "/api/bookings/<int:booking_id>",
+    methods=["PUT"]
+)
 def update_booking(booking_id):
 
     booking = Booking.query.get_or_404(
@@ -726,7 +867,10 @@ def update_booking(booking_id):
     )
 
 
-@app.route("/api/bookings/<int:booking_id>", methods=["DELETE"])
+@app.route(
+    "/api/bookings/<int:booking_id>",
+    methods=["DELETE"]
+)
 def delete_booking(booking_id):
 
     booking = Booking.query.get_or_404(
@@ -765,6 +909,7 @@ def create_payment():
 
     booking_id = data.get("bookingId")
     amount = data.get("amount")
+
     payment_method = data.get(
         "paymentMethod",
         "Cash"
@@ -796,7 +941,10 @@ def create_payment():
 
         amount = float(amount)
 
-    except (ValueError, TypeError):
+    except (
+        ValueError,
+        TypeError
+    ):
 
         return jsonify({
             "error": "Invalid payment amount"
@@ -881,9 +1029,20 @@ def dashboard():
 @app.route("/api/test", methods=["GET"])
 def test_api():
 
+    database_type = (
+        "PostgreSQL"
+        if database_url
+        else "SQLite"
+    )
+
     return jsonify({
         "success": True,
-        "message": "Python Flask API and SQLite Database are working"
+        "message": (
+            "Python Flask API and "
+            + database_type
+            + " Database are working"
+        ),
+        "database": database_type
     })
 
 
@@ -916,18 +1075,30 @@ def internal_error(error):
 
 if __name__ == "__main__":
 
+    port = int(
+        os.environ.get(
+            "PORT",
+            5000
+        )
+    )
+
     print()
     print("==========================================")
     print("       PET BOARDING SYSTEM")
     print("==========================================")
     print("Backend  : Python + Flask")
-    print("Database : SQLite")
-    print("API      : http://127.0.0.1:5000")
+
+    if database_url:
+        print("Database : PostgreSQL")
+    else:
+        print("Database : SQLite")
+
+    print(f"Port     : {port}")
     print("==========================================")
     print()
 
     app.run(
-        host="127.0.0.1",
-        port=5000,
-        debug=True
+        host="0.0.0.0",
+        port=port,
+        debug=False
     )
