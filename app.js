@@ -4,6 +4,9 @@ let customers = [];
 let pets = [];
 let bookings = [];
 
+let selectedCustomerId = null;
+let selectedPetId = null;
+
 // ================= START =================
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -107,6 +110,7 @@ function showPage(pageId, button = null) {
     dashboard: ["Dashboard", "ภาพรวมระบบรับฝากเลี้ยงสัตว์"],
     customers: ["ลูกค้า", "จัดการข้อมูลเจ้าของสัตว์เลี้ยง"],
     pets: ["สัตว์เลี้ยง", "จัดการข้อมูลสัตว์เลี้ยง"],
+    boarding: ["รับฝากสัตว์เลี้ยง", "ค้นหาลูกค้าเดิม เลือกสัตว์เลี้ยง แล้วทำรายการฝากได้ในขั้นตอนเดียว"],
     bookings: ["การจอง", "จัดการรายการรับฝากเลี้ยง"],
   };
 
@@ -804,16 +808,16 @@ function openBookingModal() {
 
         <select id="serviceType" required>
 
-          <option value="Standard Boarding">
-            Standard Boarding
+          <option value="ฝากเลี้ยงมาตรฐาน">
+            🏠 ฝากเลี้ยงมาตรฐาน
           </option>
 
-          <option value="Premium Boarding">
-            Premium Boarding
+          <option value="ฝากเลี้ยงพิเศษ">
+            ⭐ ฝากเลี้ยงพิเศษ
           </option>
 
-          <option value="Day Care">
-            Day Care
+          <option value="ฝากเลี้ยง VIP">
+            👑 ฝากเลี้ยง VIP
           </option>
 
         </select>
@@ -1004,6 +1008,377 @@ async function deleteBooking(id) {
     console.error("Delete booking error:", error);
     alert(error.message);
   }
+}
+
+// ================= QUICK BOARDING (รับฝากสัตว์เลี้ยง) =================
+
+function filterQuickCustomers() {
+  const query = document.getElementById("quickCustomerSearch").value.trim().toLowerCase();
+  const resultsContainer = document.getElementById("quickCustomerResults");
+
+  if (!query) {
+    resultsContainer.innerHTML = "";
+    return;
+  }
+
+  const matches = customers.filter(
+    (c) =>
+      (c.name && c.name.toLowerCase().includes(query)) ||
+      (c.phone && c.phone.includes(query))
+  );
+
+  if (matches.length === 0) {
+    resultsContainer.innerHTML = `
+      <div class="customer-empty">
+        <div>🔍</div>
+        <strong>ไม่พบข้อมูลลูกค้าที่ตรงกัน</strong>
+        <span>สามารถกด "+ ลูกค้าใหม่" เพื่อเพิ่มข้อมูลได้</span>
+      </div>
+    `;
+    return;
+  }
+
+  resultsContainer.innerHTML = matches
+    .map(
+      (c) => `
+      <div class="customer-result-card ${selectedCustomerId === c.customerId ? 'selected' : ''}" onclick="selectQuickCustomer(${c.customerId})">
+        <div class="customer-result-avatar">👤</div>
+        <div class="customer-result-info">
+          <strong>${escapeHTML(c.name)}</strong>
+          <span>📞 ${escapeHTML(c.phone || '-')}</span>
+        </div>
+        <div class="customer-result-arrow">➔</div>
+      </div>
+    `
+    )
+    .join("");
+}
+
+function clearQuickCustomerSearch() {
+  const searchInput = document.getElementById("quickCustomerSearch");
+  const resultsContainer = document.getElementById("quickCustomerResults");
+  if (searchInput) searchInput.value = "";
+  if (resultsContainer) resultsContainer.innerHTML = "";
+}
+
+function selectQuickCustomer(customerId) {
+  const customer = customers.find((c) => Number(c.customerId) === Number(customerId));
+  if (!customer) return;
+
+  selectedCustomerId = customer.customerId;
+
+  const newCustBox = document.getElementById("quickNewCustomerBox");
+  if (newCustBox) newCustBox.classList.remove("show");
+
+  const selectedBox = document.getElementById("selectedCustomerBox");
+  if (selectedBox) {
+    selectedBox.classList.remove("empty-selected");
+    selectedBox.innerHTML = `
+      <div class="selected-avatar">👤</div>
+      <div class="selected-content">
+        <span>ลูกค้าที่เลือก</span>
+        <strong>${escapeHTML(customer.name)}</strong>
+        <small>📞 ${escapeHTML(customer.phone || '-')}</small>
+      </div>
+      <button type="button" class="change-selection" onclick="clearQuickCustomer()">เปลี่ยน</button>
+    `;
+  }
+
+  const summaryPerson = document.getElementById("quickSummaryPerson");
+  if (summaryPerson) {
+    summaryPerson.innerHTML = `
+      <div class="summary-avatar">👤</div>
+      <div>
+        <small>ลูกค้า</small>
+        <strong>${escapeHTML(customer.name)}</strong>
+      </div>
+    `;
+  }
+
+  loadCustomerPetsOptions(customer.customerId);
+  clearQuickCustomerSearch();
+}
+
+function clearQuickCustomer() {
+  selectedCustomerId = null;
+  selectedPetId = null;
+
+  const selectedBox = document.getElementById("selectedCustomerBox");
+  if (selectedBox) {
+    selectedBox.classList.add("empty-selected");
+    selectedBox.innerHTML = `
+      <div class="selected-avatar">👤</div>
+      <div class="selected-content">
+        <span>ลูกค้าที่เลือก</span>
+        <strong>ยังไม่ได้เลือกลูกค้า</strong>
+        <small>เลือกจากรายการด้านบน</small>
+      </div>
+      <button type="button" class="change-selection" onclick="clearQuickCustomer()">เปลี่ยน</button>
+    `;
+  }
+
+  const summaryPerson = document.getElementById("quickSummaryPerson");
+  if (summaryPerson) {
+    summaryPerson.innerHTML = `
+      <div class="summary-avatar">👤</div>
+      <div>
+        <small>ลูกค้า</small>
+        <strong>ยังไม่ได้เลือก</strong>
+      </div>
+    `;
+  }
+
+  resetQuickPetDisplay();
+}
+
+function toggleQuickNewCustomer() {
+  const box = document.getElementById("quickNewCustomerBox");
+  if (box) {
+    box.classList.toggle("show");
+    if (box.classList.contains("show")) {
+      clearQuickCustomer();
+    }
+  }
+}
+
+function loadCustomerPetsOptions(customerId) {
+  const select = document.getElementById("quickPetSelect");
+  if (!select) return;
+
+  const customerPets = pets.filter((p) => Number(p.customerId) === Number(customerId));
+
+  select.innerHTML = '<option value="">เลือกสัตว์เลี้ยงของลูกค้า...</option>';
+
+  if (customerPets.length === 0) {
+    select.innerHTML += '<option value="" disabled>-- ไม่มีสัตว์เลี้ยงในระบบ --</option>';
+  } else {
+    customerPets.forEach((p) => {
+      select.innerHTML += `<option value="${p.petId}">${escapeHTML(p.name)} (${escapeHTML(p.type)})</option>`;
+    });
+  }
+
+  resetQuickPetDisplay();
+}
+
+function selectQuickPet() {
+  const select = document.getElementById("quickPetSelect");
+  if (!select) return;
+
+  const petId = Number(select.value);
+  if (!petId) {
+    resetQuickPetDisplay();
+    return;
+  }
+
+  const pet = pets.find((p) => Number(p.petId) === Number(petId));
+  if (!pet) return;
+
+  selectedPetId = pet.petId;
+
+  document.getElementById("quickPetNameDisplay").textContent = pet.name;
+  document.getElementById("quickPetTypeDisplay").textContent = pet.type || "-";
+  document.getElementById("quickPetBreedDisplay").textContent = pet.breed || "-";
+
+  const summaryPet = document.getElementById("quickSummaryPet");
+  if (summaryPet) {
+    summaryPet.innerHTML = `
+      <div class="summary-avatar pet">🐾</div>
+      <div>
+        <small>สัตว์เลี้ยง</small>
+        <strong>${escapeHTML(pet.name)}</strong>
+      </div>
+    `;
+  }
+}
+
+function resetQuickPetDisplay() {
+  selectedPetId = null;
+  const select = document.getElementById("quickPetSelect");
+  if (select) select.value = "";
+
+  const nameDisp = document.getElementById("quickPetNameDisplay");
+  const typeDisp = document.getElementById("quickPetTypeDisplay");
+  const breedDisp = document.getElementById("quickPetBreedDisplay");
+
+  if (nameDisp) nameDisp.textContent = "ยังไม่ได้เลือก";
+  if (typeDisp) typeDisp.textContent = "-";
+  if (breedDisp) breedDisp.textContent = "-";
+
+  const summaryPet = document.getElementById("quickSummaryPet");
+  if (summaryPet) {
+    summaryPet.innerHTML = `
+      <div class="summary-avatar pet">🐶</div>
+      <div>
+        <small>สัตว์เลี้ยง</small>
+        <strong>ยังไม่ได้เลือก</strong>
+      </div>
+    `;
+  }
+}
+
+function toggleQuickNewPet() {
+  const box = document.getElementById("quickNewPetBox");
+  if (box) box.classList.toggle("show");
+}
+
+function choosePetType(type) {
+  const select = document.getElementById("quickNewPetType");
+  if (select) select.value = type;
+}
+
+function updateQuickPrice() {
+  const checkIn = document.getElementById("quickCheckIn").value;
+  const checkOut = document.getElementById("quickCheckOut").value;
+  const serviceSelect = document.getElementById("quickServiceType");
+  const priceInput = document.getElementById("quickPricePerDay");
+
+  const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+  if (selectedOption && selectedOption.dataset.price) {
+    priceInput.value = selectedOption.dataset.price;
+  }
+
+  const pricePerDay = Number(priceInput.value || 0);
+
+  if (checkIn && checkOut) {
+    const d1 = new Date(checkIn);
+    const d2 = new Date(checkOut);
+    const timeDiff = d2.getTime() - d1.getTime();
+    const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+
+    if (daysDiff > 0) {
+      const totalPrice = daysDiff * pricePerDay;
+
+      document.getElementById("quickSummaryDates").textContent = `${checkIn} ถึง ${checkOut}`;
+      document.getElementById("quickSummaryDays").textContent = `${daysDiff} วัน`;
+      document.getElementById("quickSummaryService").textContent = selectedOption ? selectedOption.value : "-";
+      document.getElementById("quickSummaryTotal").textContent = formatMoney(totalPrice);
+      return;
+    }
+  }
+
+  document.getElementById("quickSummaryDates").textContent = "-";
+  document.getElementById("quickSummaryDays").textContent = "0 วัน";
+  document.getElementById("quickSummaryService").textContent = selectedOption ? selectedOption.value : "-";
+  document.getElementById("quickSummaryTotal").textContent = "฿0";
+}
+
+async function saveQuickBoarding(event) {
+  event.preventDefault();
+
+  try {
+    let finalCustomerId = selectedCustomerId;
+    let finalPetId = selectedPetId;
+
+    const newCustBox = document.getElementById("quickNewCustomerBox");
+    if ((newCustBox && newCustBox.classList.contains("show")) || !finalCustomerId) {
+      const nameInput = document.getElementById("quickNewCustomerName");
+      const phoneInput = document.getElementById("quickNewCustomerPhone");
+      const name = nameInput ? nameInput.value.trim() : "";
+      const phone = phoneInput ? phoneInput.value.trim() : "";
+
+      if (name && phone) {
+        const createdCustomer = await fetchJSON(`${API}/customers`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, phone }),
+        });
+        finalCustomerId = createdCustomer.customerId || createdCustomer.id;
+      }
+    }
+
+    if (!finalCustomerId) {
+      alert("กรุณาเลือกลูกค้าเดิม หรือระบุข้อมูลลูกค้าใหม่ให้ครบถ้วน");
+      return;
+    }
+
+    const newPetBox = document.getElementById("quickNewPetBox");
+    if ((newPetBox && newPetBox.classList.contains("show")) || !finalPetId) {
+      const nameInput = document.getElementById("quickNewPetName");
+      const typeInput = document.getElementById("quickNewPetType");
+      const breedInput = document.getElementById("quickNewPetBreed");
+      const ageInput = document.getElementById("quickNewPetAge");
+
+      const name = nameInput ? nameInput.value.trim() : "";
+      const type = typeInput ? typeInput.value : "";
+      const breed = breedInput ? breedInput.value.trim() : "";
+      const age = ageInput ? Number(ageInput.value || 0) : 0;
+
+      if (name && type) {
+        const createdPet = await fetchJSON(`${API}/pets`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            customerId: finalCustomerId,
+            name,
+            type,
+            breed,
+            age,
+          }),
+        });
+        finalPetId = createdPet.petId || createdPet.id;
+      }
+    }
+
+    if (!finalPetId) {
+      alert("กรุณาเลือกสัตว์เลี้ยง หรือระบุข้อมูลสัตว์เลี้ยงใหม่ให้ครบถ้วน");
+      return;
+    }
+
+    const checkInDate = document.getElementById("quickCheckIn").value;
+    const checkOutDate = document.getElementById("quickCheckOut").value;
+    const serviceType = document.getElementById("quickServiceType").value;
+    const pricePerDay = Number(
+      document.getElementById("quickPricePerDay").value || 0
+    );
+
+    if (!checkInDate || !checkOutDate) {
+      alert("กรุณาระบุวันเช็กอินและวันเช็กเอาต์");
+      return;
+    }
+
+    if (checkOutDate <= checkInDate) {
+      alert("วันที่เช็กเอาต์ต้องมากกว่าวันที่เช็กอิน");
+      return;
+    }
+
+    await fetchJSON(`${API}/bookings`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        petId: finalPetId,
+        checkInDate,
+        checkOutDate,
+        serviceType,
+        pricePerDay,
+      }),
+    });
+
+    alert("ทำรายการรับฝากเลี้ยงเรียบร้อยแล้ว!");
+    resetQuickBoarding();
+    await loadAllData();
+    showPage("bookings");
+  } catch (error) {
+    console.error("Quick boarding error:", error);
+    alert("เกิดข้อผิดพลาด: " + error.message);
+  }
+}
+
+function resetQuickBoarding() {
+  const form = document.getElementById("quickBoardingForm");
+  if (form) form.reset();
+
+  clearQuickCustomer();
+  clearQuickCustomerSearch();
+
+  const newCustBox = document.getElementById("quickNewCustomerBox");
+  const newPetBox = document.getElementById("quickNewPetBox");
+
+  if (newCustBox) newCustBox.classList.remove("show");
+  if (newPetBox) newPetBox.classList.remove("show");
+
+  updateQuickPrice();
 }
 
 // ================= MODAL =================
