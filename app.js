@@ -1,6 +1,5 @@
 const API = "https://pet-boarding-system.onrender.com/api";
 
-
 let customers = [];
 let pets = [];
 let bookings = [];
@@ -8,41 +7,69 @@ let bookings = [];
 // ================= START =================
 
 document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("currentDate").textContent =
-    new Date().toLocaleDateString("th-TH", {
+  const currentDate = document.getElementById("currentDate");
+
+  if (currentDate) {
+    currentDate.textContent = new Date().toLocaleDateString("th-TH", {
       day: "numeric",
       month: "long",
       year: "numeric",
     });
+  }
 
   loadAllData();
 });
+
+// ================= API HELPER =================
+
+async function fetchJSON(url, options = {}) {
+  const response = await fetch(url, options);
+
+  let result = null;
+
+  try {
+    result = await response.json();
+  } catch (error) {
+    result = null;
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      result?.error ||
+        result?.message ||
+        `เกิดข้อผิดพลาดจากเซิร์ฟเวอร์ (${response.status})`,
+    );
+  }
+
+  return result;
+}
 
 // ================= LOAD DATA =================
 
 async function loadAllData() {
   try {
-    const [customerRes, petRes, bookingRes] = await Promise.all([
-      fetch(`${API}/customers`),
-      fetch(`${API}/pets`),
-      fetch(`${API}/bookings`),
+    const [customerData, petData, bookingData] = await Promise.all([
+      fetchJSON(`${API}/customers`),
+      fetchJSON(`${API}/pets`),
+      fetchJSON(`${API}/bookings`),
     ]);
 
-    customers = await customerRes.json();
-    pets = await petRes.json();
-    bookings = await bookingRes.json();
+    customers = Array.isArray(customerData) ? customerData : [];
+    pets = Array.isArray(petData) ? petData : [];
+    bookings = Array.isArray(bookingData) ? bookingData : [];
 
     updateDashboard();
-
     renderCustomers();
     renderPets();
     renderBookings();
   } catch (error) {
-    console.error(error);
+    console.error("Load data error:", error);
 
     alert(
       "ไม่สามารถเชื่อมต่อ Backend ได้\n\n" +
-        "ตรวจสอบว่า Python Flask กำลังทำงานอยู่ที่ port 5000",
+        "กรุณาตรวจสอบว่า Backend บน Render กำลังทำงานอยู่\n\n" +
+        "รายละเอียด: " +
+        error.message,
     );
   }
 }
@@ -68,10 +95,9 @@ function showPage(pageId, button = null) {
     button.classList.add("active");
   } else {
     document.querySelectorAll(".menu-item").forEach((item) => {
-      if (
-        item.getAttribute("onclick") &&
-        item.getAttribute("onclick").includes(`'${pageId}'`)
-      ) {
+      const onclick = item.getAttribute("onclick");
+
+      if (onclick && onclick.includes(`'${pageId}'`)) {
         item.classList.add("active");
       }
     });
@@ -79,46 +105,65 @@ function showPage(pageId, button = null) {
 
   const titles = {
     dashboard: ["Dashboard", "ภาพรวมระบบรับฝากเลี้ยงสัตว์"],
-
     customers: ["ลูกค้า", "จัดการข้อมูลเจ้าของสัตว์เลี้ยง"],
-
     pets: ["สัตว์เลี้ยง", "จัดการข้อมูลสัตว์เลี้ยง"],
-
     bookings: ["การจอง", "จัดการรายการรับฝากเลี้ยง"],
   };
 
   if (titles[pageId]) {
-    document.getElementById("pageTitle").textContent = titles[pageId][0];
+    const pageTitle = document.getElementById("pageTitle");
+    const pageDescription = document.getElementById("pageDescription");
 
-    document.getElementById("pageDescription").textContent = titles[pageId][1];
+    if (pageTitle) {
+      pageTitle.textContent = titles[pageId][0];
+    }
+
+    if (pageDescription) {
+      pageDescription.textContent = titles[pageId][1];
+    }
   }
 }
 
 // ================= DASHBOARD =================
 
 function updateDashboard() {
-  document.getElementById("customerCount").textContent = customers.length;
+  const customerCount = document.getElementById("customerCount");
+  const petCount = document.getElementById("petCount");
+  const bookingCount = document.getElementById("bookingCount");
+  const revenueElement = document.getElementById("revenue");
 
-  document.getElementById("petCount").textContent = pets.length;
+  if (customerCount) {
+    customerCount.textContent = customers.length;
+  }
 
-  document.getElementById("bookingCount").textContent = bookings.length;
+  if (petCount) {
+    petCount.textContent = pets.length;
+  }
 
-  const revenue = bookings.reduce(
-    (sum, booking) => sum + Number(booking.price || 0),
-    0,
-  );
+  if (bookingCount) {
+    bookingCount.textContent = bookings.length;
+  }
 
-  document.getElementById("revenue").textContent = formatMoney(revenue);
+  const revenue = bookings.reduce((sum, booking) => {
+    return sum + Number(booking.price || 0);
+  }, 0);
+
+  if (revenueElement) {
+    revenueElement.textContent = formatMoney(revenue);
+  }
 
   const recent = bookings.slice(-5).reverse();
-
   const container = document.getElementById("recentBookings");
+
+  if (!container) {
+    return;
+  }
 
   if (recent.length === 0) {
     container.innerHTML = `
-            <div>📅</div>
-            <p>ยังไม่มีข้อมูลการจอง</p>
-        `;
+      <div>📅</div>
+      <p>ยังไม่มีข้อมูลการจอง</p>
+    `;
 
     return;
   }
@@ -126,20 +171,16 @@ function updateDashboard() {
   container.innerHTML = recent
     .map(
       (booking) => `
-
         <div class="system-row">
+          <span>
+            🐾 ${escapeHTML(booking.petName || "-")}
+          </span>
 
-            <span>
-                🐾 ${escapeHTML(booking.petName || "-")}
-            </span>
-
-            <strong>
-                ${formatMoney(booking.price)}
-            </strong>
-
+          <strong>
+            ${formatMoney(booking.price)}
+          </strong>
         </div>
-
-    `,
+      `,
     )
     .join("");
 }
@@ -149,14 +190,18 @@ function updateDashboard() {
 function renderCustomers() {
   const table = document.getElementById("customerTable");
 
+  if (!table) {
+    return;
+  }
+
   if (customers.length === 0) {
     table.innerHTML = `
-            <tr>
-                <td colspan="4" style="text-align:center;color:#999;padding:35px">
-                    ยังไม่มีข้อมูลลูกค้า
-                </td>
-            </tr>
-        `;
+      <tr>
+        <td colspan="4" style="text-align:center;color:#999;padding:35px">
+          ยังไม่มีข้อมูลลูกค้า
+        </td>
+      </tr>
+    `;
 
     return;
   }
@@ -164,38 +209,32 @@ function renderCustomers() {
   table.innerHTML = customers
     .map(
       (customer) => `
-
         <tr>
+          <td>#${customer.customerId}</td>
 
-            <td>#${customer.customerId}</td>
+          <td>
+            <strong>${escapeHTML(customer.name)}</strong>
+          </td>
 
-            <td>
-                <strong>${escapeHTML(customer.name)}</strong>
-            </td>
+          <td>
+            ${escapeHTML(customer.phone)}
+          </td>
 
-            <td>
-                ${escapeHTML(customer.phone)}
-            </td>
+          <td>
+            <button
+              class="action-button"
+              onclick="editCustomer(${customer.customerId})">
+              แก้ไข
+            </button>
 
-            <td>
-
-                <button
-                    class="action-button"
-                    onclick="editCustomer(${customer.customerId})">
-                    แก้ไข
-                </button>
-
-                <button
-                    class="action-button delete-button"
-                    onclick="deleteCustomer(${customer.customerId})">
-                    ลบ
-                </button>
-
-            </td>
-
+            <button
+              class="action-button delete-button"
+              onclick="deleteCustomer(${customer.customerId})">
+              ลบ
+            </button>
+          </td>
         </tr>
-
-    `,
+      `,
     )
     .join("");
 }
@@ -205,14 +244,18 @@ function renderCustomers() {
 function renderPets() {
   const table = document.getElementById("petTable");
 
+  if (!table) {
+    return;
+  }
+
   if (pets.length === 0) {
     table.innerHTML = `
-            <tr>
-                <td colspan="7" style="text-align:center;color:#999;padding:35px">
-                    ยังไม่มีข้อมูลสัตว์เลี้ยง
-                </td>
-            </tr>
-        `;
+      <tr>
+        <td colspan="7" style="text-align:center;color:#999;padding:35px">
+          ยังไม่มีข้อมูลสัตว์เลี้ยง
+        </td>
+      </tr>
+    `;
 
     return;
   }
@@ -224,42 +267,38 @@ function renderPets() {
       );
 
       return `
+        <tr>
+          <td>#${pet.petId}</td>
 
-            <tr>
+          <td>
+            <strong>${escapeHTML(pet.name)}</strong>
+          </td>
 
-                <td>#${pet.petId}</td>
+          <td>${escapeHTML(pet.type)}</td>
 
-                <td>
-                    <strong>${escapeHTML(pet.name)}</strong>
-                </td>
+          <td>${escapeHTML(pet.breed || "-")}</td>
 
-                <td>${escapeHTML(pet.type)}</td>
+          <td>${Number(pet.age || 0)} ปี</td>
 
-                <td>${escapeHTML(pet.breed || "-")}</td>
+          <td>
+            ${escapeHTML(owner?.name || "-")}
+          </td>
 
-                <td>${pet.age || 0} ปี</td>
+          <td>
+            <button
+              class="action-button"
+              onclick="editPet(${pet.petId})">
+              แก้ไข
+            </button>
 
-                <td>${escapeHTML(owner?.name || "-")}</td>
-
-                <td>
-
-                    <button
-                        class="action-button"
-                        onclick="editPet(${pet.petId})">
-                        แก้ไข
-                    </button>
-
-                    <button
-                        class="action-button delete-button"
-                        onclick="deletePet(${pet.petId})">
-                        ลบ
-                    </button>
-
-                </td>
-
-            </tr>
-
-        `;
+            <button
+              class="action-button delete-button"
+              onclick="deletePet(${pet.petId})">
+              ลบ
+            </button>
+          </td>
+        </tr>
+      `;
     })
     .join("");
 }
@@ -269,14 +308,18 @@ function renderPets() {
 function renderBookings() {
   const table = document.getElementById("bookingTable");
 
+  if (!table) {
+    return;
+  }
+
   if (bookings.length === 0) {
     table.innerHTML = `
-            <tr>
-                <td colspan="9" style="text-align:center;color:#999;padding:35px">
-                    ยังไม่มีข้อมูลการจอง
-                </td>
-            </tr>
-        `;
+      <tr>
+        <td colspan="9" style="text-align:center;color:#999;padding:35px">
+          ยังไม่มีข้อมูลการจอง
+        </td>
+      </tr>
+    `;
 
     return;
   }
@@ -284,52 +327,46 @@ function renderBookings() {
   table.innerHTML = bookings
     .map(
       (booking) => `
-
         <tr>
+          <td>#${booking.bookingId}</td>
 
-            <td>#${booking.bookingId}</td>
+          <td>
+            <strong>${escapeHTML(booking.petName || "-")}</strong>
+          </td>
 
-            <td>
-                <strong>${escapeHTML(booking.petName)}</strong>
-            </td>
+          <td>
+            ${escapeHTML(booking.customerName || "-")}
+          </td>
 
-            <td>
-                ${escapeHTML(booking.customerName)}
-            </td>
+          <td>${escapeHTML(booking.checkInDate || "-")}</td>
 
-            <td>${booking.checkInDate}</td>
+          <td>${escapeHTML(booking.checkOutDate || "-")}</td>
 
-            <td>${booking.checkOutDate}</td>
+          <td>${escapeHTML(booking.serviceType || "-")}</td>
 
-            <td>${escapeHTML(booking.serviceType)}</td>
+          <td>
+            <strong>${formatMoney(booking.price)}</strong>
+          </td>
 
-            <td>
-                <strong>${formatMoney(booking.price)}</strong>
-            </td>
+          <td>
+            ${statusBadge(booking.status)}
+          </td>
 
-            <td>
-                ${statusBadge(booking.status)}
-            </td>
+          <td>
+            <button
+              class="action-button"
+              onclick="changeBookingStatus(${booking.bookingId})">
+              สถานะ
+            </button>
 
-            <td>
-
-                <button
-                    class="action-button"
-                    onclick="changeBookingStatus(${booking.bookingId})">
-                    สถานะ
-                </button>
-
-                <button
-                    class="action-button delete-button"
-                    onclick="deleteBooking(${booking.bookingId})">
-                    ลบ
-                </button>
-
-            </td>
-
+            <button
+              class="action-button delete-button"
+              onclick="deleteBooking(${booking.bookingId})">
+              ลบ
+            </button>
+          </td>
         </tr>
-
-    `,
+      `,
     )
     .join("");
 }
@@ -348,65 +385,64 @@ function openCustomerModal(customer = null) {
     : "กรอกข้อมูลลูกค้าใหม่";
 
   document.getElementById("modalBody").innerHTML = `
+    <form
+      class="form"
+      onsubmit="saveCustomer(event, ${
+        editing ? customer.customerId : "null"
+      })"
+    >
 
-        <form class="form" onsubmit="saveCustomer(event, ${editing ? customer.customerId : "null"})">
+      <div class="form-group">
+        <label>ชื่อลูกค้า</label>
 
-            <div class="form-group">
+        <input
+          type="text"
+          id="customerName"
+          value="${editing ? escapeAttribute(customer.name) : ""}"
+          placeholder="เช่น สมชาย ใจดี"
+          required
+        >
+      </div>
 
-                <label>ชื่อลูกค้า</label>
+      <div class="form-group">
+        <label>เบอร์โทรศัพท์</label>
 
-                <input
-                    type="text"
-                    id="customerName"
-                    value="${editing ? escapeAttribute(customer.name) : ""}"
-                    placeholder="เช่น สมชาย ใจดี"
-                    required
-                >
+        <input
+          type="tel"
+          id="customerPhone"
+          value="${editing ? escapeAttribute(customer.phone) : ""}"
+          placeholder="08xxxxxxxx"
+          required
+        >
+      </div>
 
-            </div>
+      <div class="form-actions">
 
+        <button
+          type="button"
+          class="cancel-button"
+          onclick="closeModal()">
+          ยกเลิก
+        </button>
 
-            <div class="form-group">
+        <button
+          type="submit"
+          class="primary-button">
+          ${editing ? "บันทึกการแก้ไข" : "เพิ่มลูกค้า"}
+        </button>
 
-                <label>เบอร์โทรศัพท์</label>
+      </div>
 
-                <input
-                    type="tel"
-                    id="customerPhone"
-                    value="${editing ? escapeAttribute(customer.phone) : ""}"
-                    placeholder="08xxxxxxxx"
-                    required
-                >
-
-            </div>
-
-
-            <div class="form-actions">
-
-                <button
-                    type="button"
-                    class="cancel-button"
-                    onclick="closeModal()">
-                    ยกเลิก
-                </button>
-
-                <button
-                    type="submit"
-                    class="primary-button">
-                    ${editing ? "บันทึกการแก้ไข" : "เพิ่มลูกค้า"}
-                </button>
-
-            </div>
-
-        </form>
-
-    `;
+    </form>
+  `;
 
   openModal();
 }
 
 function editCustomer(id) {
-  const customer = customers.find((item) => item.customerId === id);
+  const customer = customers.find(
+    (item) => Number(item.customerId) === Number(id),
+  );
 
   if (customer) {
     openCustomerModal(customer);
@@ -417,34 +453,36 @@ async function saveCustomer(event, id) {
   event.preventDefault();
 
   const data = {
-    name: document.getElementById("customerName").value,
-
-    phone: document.getElementById("customerPhone").value,
+    name: document.getElementById("customerName").value.trim(),
+    phone: document.getElementById("customerPhone").value.trim(),
   };
 
+  if (!data.name || !data.phone) {
+    alert("กรุณากรอกข้อมูลลูกค้าให้ครบ");
+    return;
+  }
+
   try {
-    const url = id ? `${API}/customers/${id}` : `${API}/customers`;
+    const url = id
+      ? `${API}/customers/${encodeURIComponent(id)}`
+      : `${API}/customers`;
 
     const method = id ? "PUT" : "POST";
 
-    const response = await fetch(url, {
+    await fetchJSON(url, {
       method,
-
       headers: {
         "Content-Type": "application/json",
       },
-
       body: JSON.stringify(data),
     });
 
-    if (!response.ok) {
-      throw new Error("ไม่สามารถบันทึกข้อมูลได้");
-    }
-
     closeModal();
-
     await loadAllData();
+
+    alert(id ? "แก้ไขข้อมูลลูกค้าเรียบร้อยแล้ว" : "เพิ่มลูกค้าเรียบร้อยแล้ว");
   } catch (error) {
+    console.error("Save customer error:", error);
     alert(error.message);
   }
 }
@@ -455,16 +493,15 @@ async function deleteCustomer(id) {
   }
 
   try {
-    const response = await fetch(`${API}/customers/${id}`, {
+    await fetchJSON(`${API}/customers/${encodeURIComponent(id)}`, {
       method: "DELETE",
     });
 
-    if (!response.ok) {
-      throw new Error("ไม่สามารถลบข้อมูลได้");
-    }
-
     await loadAllData();
+
+    alert("ลบข้อมูลลูกค้าเรียบร้อยแล้ว");
   } catch (error) {
+    console.error("Delete customer error:", error);
     alert(error.message);
   }
 }
@@ -474,9 +511,7 @@ async function deleteCustomer(id) {
 function openPetModal(pet = null) {
   if (customers.length === 0) {
     alert("กรุณาเพิ่มลูกค้าก่อนเพิ่มสัตว์เลี้ยง");
-
     showPage("customers");
-
     return;
   }
 
@@ -492,135 +527,133 @@ function openPetModal(pet = null) {
   const customerOptions = customers
     .map(
       (customer) => `
-
         <option
-            value="${customer.customerId}"
-            ${editing && customer.customerId === pet.customerId ? "selected" : ""}>
-            ${escapeHTML(customer.name)}
+          value="${customer.customerId}"
+          ${
+            editing && customer.customerId === pet.customerId
+              ? "selected"
+              : ""
+          }
+        >
+          ${escapeHTML(customer.name)}
         </option>
-
-    `,
+      `,
     )
     .join("");
 
   document.getElementById("modalBody").innerHTML = `
+    <form
+      class="form"
+      onsubmit="savePet(event, ${editing ? pet.petId : "null"})"
+    >
 
-        <form class="form" onsubmit="savePet(event, ${editing ? pet.petId : "null"})">
+      <div class="form-group">
+        <label>เจ้าของ</label>
 
-            <div class="form-group">
+        <select id="petCustomer" required>
+          <option value="">เลือกเจ้าของ</option>
+          ${customerOptions}
+        </select>
+      </div>
 
-                <label>เจ้าของ</label>
+      <div class="form-group">
+        <label>ชื่อสัตว์เลี้ยง</label>
 
-                <select id="petCustomer" required>
+        <input
+          type="text"
+          id="petName"
+          value="${editing ? escapeAttribute(pet.name) : ""}"
+          placeholder="เช่น มะลิ"
+          required
+        >
+      </div>
 
-                    <option value="">เลือกเจ้าของ</option>
+      <div class="form-group">
+        <label>ประเภท</label>
 
-                    ${customerOptions}
+        <select id="petType" required>
+          <option value="">เลือกประเภท</option>
 
-                </select>
+          <option
+            value="Dog"
+            ${editing && pet.type === "Dog" ? "selected" : ""}
+          >
+            🐶 สุนัข
+          </option>
 
-            </div>
+          <option
+            value="Cat"
+            ${editing && pet.type === "Cat" ? "selected" : ""}
+          >
+            🐱 แมว
+          </option>
 
+          <option
+            value="Rabbit"
+            ${editing && pet.type === "Rabbit" ? "selected" : ""}
+          >
+            🐰 กระต่าย
+          </option>
 
-            <div class="form-group">
+          <option
+            value="Other"
+            ${editing && pet.type === "Other" ? "selected" : ""}
+          >
+            🐾 อื่น ๆ
+          </option>
+        </select>
+      </div>
 
-                <label>ชื่อสัตว์เลี้ยง</label>
+      <div class="form-group">
+        <label>สายพันธุ์</label>
 
-                <input
-                    type="text"
-                    id="petName"
-                    value="${editing ? escapeAttribute(pet.name) : ""}"
-                    placeholder="เช่น มะลิ"
-                    required
-                >
+        <input
+          type="text"
+          id="petBreed"
+          value="${editing ? escapeAttribute(pet.breed || "") : ""}"
+          placeholder="เช่น Golden Retriever"
+        >
+      </div>
 
-            </div>
+      <div class="form-group">
+        <label>อายุ</label>
 
+        <input
+          type="number"
+          id="petAge"
+          min="0"
+          value="${editing ? Number(pet.age || 0) : ""}"
+          placeholder="อายุเป็นปี"
+        >
+      </div>
 
-            <div class="form-group">
+      <div class="form-actions">
 
-                <label>ประเภท</label>
+        <button
+          type="button"
+          class="cancel-button"
+          onclick="closeModal()">
+          ยกเลิก
+        </button>
 
-                <select id="petType" required>
+        <button
+          type="submit"
+          class="primary-button">
+          ${editing ? "บันทึกการแก้ไข" : "เพิ่มสัตว์เลี้ยง"}
+        </button>
 
-                    <option value="">เลือกประเภท</option>
+      </div>
 
-                    <option value="Dog" ${editing && pet.type === "Dog" ? "selected" : ""}>
-                        🐶 สุนัข
-                    </option>
-
-                    <option value="Cat" ${editing && pet.type === "Cat" ? "selected" : ""}>
-                        🐱 แมว
-                    </option>
-
-                    <option value="Rabbit" ${editing && pet.type === "Rabbit" ? "selected" : ""}>
-                        🐰 กระต่าย
-                    </option>
-
-                    <option value="Other" ${editing && pet.type === "Other" ? "selected" : ""}>
-                        🐾 อื่น ๆ
-                    </option>
-
-                </select>
-
-            </div>
-
-
-            <div class="form-group">
-
-                <label>สายพันธุ์</label>
-
-                <input
-                    type="text"
-                    id="petBreed"
-                    value="${editing ? escapeAttribute(pet.breed || "") : ""}"
-                    placeholder="เช่น Golden Retriever"
-                >
-
-            </div>
-
-
-            <div class="form-group">
-
-                <label>อายุ</label>
-
-                <input
-                    type="number"
-                    id="petAge"
-                    min="0"
-                    value="${editing ? pet.age || 0 : ""}"
-                    placeholder="อายุเป็นปี"
-                >
-
-            </div>
-
-
-            <div class="form-actions">
-
-                <button
-                    type="button"
-                    class="cancel-button"
-                    onclick="closeModal()">
-                    ยกเลิก
-                </button>
-
-                <button
-                    type="submit"
-                    class="primary-button">
-                    ${editing ? "บันทึกการแก้ไข" : "เพิ่มสัตว์เลี้ยง"}
-                </button>
-
-            </div>
-
-        </form>
-
-    `;
+    </form>
+  `;
 
   openModal();
 }
 
 function editPet(id) {
-  const pet = pets.find((item) => item.petId === id);
+  const pet = pets.find(
+    (item) => Number(item.petId) === Number(id),
+  );
 
   if (pet) {
     openPetModal(pet);
@@ -630,41 +663,59 @@ function editPet(id) {
 async function savePet(event, id) {
   event.preventDefault();
 
+  const customerId = Number(
+    document.getElementById("petCustomer").value,
+  );
+
+  const name = document.getElementById("petName").value.trim();
+
+  const type = document.getElementById("petType").value;
+
+  const breed = document.getElementById("petBreed").value.trim();
+
+  const age = Number(
+    document.getElementById("petAge").value || 0,
+  );
+
+  if (!customerId || !name || !type) {
+    alert("กรุณากรอกข้อมูลสัตว์เลี้ยงให้ครบ");
+    return;
+  }
+
+  if (age < 0) {
+    alert("อายุต้องไม่ติดลบ");
+    return;
+  }
+
   const data = {
-    customerId: Number(document.getElementById("petCustomer").value),
-
-    name: document.getElementById("petName").value,
-
-    type: document.getElementById("petType").value,
-
-    breed: document.getElementById("petBreed").value,
-
-    age: Number(document.getElementById("petAge").value || 0),
+    customerId,
+    name,
+    type,
+    breed,
+    age,
   };
 
   try {
-    const url = id ? `${API}/pets/${id}` : `${API}/pets`;
+    const url = id
+      ? `${API}/pets/${encodeURIComponent(id)}`
+      : `${API}/pets`;
 
     const method = id ? "PUT" : "POST";
 
-    const response = await fetch(url, {
+    await fetchJSON(url, {
       method,
-
       headers: {
         "Content-Type": "application/json",
       },
-
       body: JSON.stringify(data),
     });
 
-    if (!response.ok) {
-      throw new Error("ไม่สามารถบันทึกข้อมูลได้");
-    }
-
     closeModal();
-
     await loadAllData();
+
+    alert(id ? "แก้ไขสัตว์เลี้ยงเรียบร้อยแล้ว" : "เพิ่มสัตว์เลี้ยงเรียบร้อยแล้ว");
   } catch (error) {
+    console.error("Save pet error:", error);
     alert(error.message);
   }
 }
@@ -675,16 +726,15 @@ async function deletePet(id) {
   }
 
   try {
-    const response = await fetch(`${API}/pets/${id}`, {
+    await fetchJSON(`${API}/pets/${encodeURIComponent(id)}`, {
       method: "DELETE",
     });
 
-    if (!response.ok) {
-      throw new Error("ไม่สามารถลบข้อมูลได้");
-    }
-
     await loadAllData();
+
+    alert("ลบข้อมูลสัตว์เลี้ยงเรียบร้อยแล้ว");
   } catch (error) {
+    console.error("Delete pet error:", error);
     alert(error.message);
   }
 }
@@ -694,9 +744,7 @@ async function deletePet(id) {
 function openBookingModal() {
   if (pets.length === 0) {
     alert("กรุณาเพิ่มสัตว์เลี้ยงก่อนสร้างการจอง");
-
     showPage("pets");
-
     return;
   }
 
@@ -712,160 +760,160 @@ function openBookingModal() {
       );
 
       return `
-
-            <option value="${pet.petId}">
-                ${escapeHTML(pet.name)} — ${escapeHTML(owner?.name || "-")}
-            </option>
-
-        `;
+        <option value="${pet.petId}">
+          ${escapeHTML(pet.name)} — ${escapeHTML(owner?.name || "-")}
+        </option>
+      `;
     })
     .join("");
 
   document.getElementById("modalBody").innerHTML = `
+    <form class="form" onsubmit="saveBooking(event)">
 
-        <form class="form" onsubmit="saveBooking(event)">
+      <div class="form-group">
+        <label>สัตว์เลี้ยง</label>
 
-            <div class="form-group">
+        <select id="bookingPet" required>
+          <option value="">เลือกสัตว์เลี้ยง</option>
+          ${petOptions}
+        </select>
+      </div>
 
-                <label>สัตว์เลี้ยง</label>
+      <div class="form-group">
+        <label>วันที่เช็กอิน</label>
 
-                <select id="bookingPet" required>
+        <input
+          type="date"
+          id="checkIn"
+          required
+        >
+      </div>
 
-                    <option value="">
-                        เลือกสัตว์เลี้ยง
-                    </option>
+      <div class="form-group">
+        <label>วันที่เช็กเอาต์</label>
 
-                    ${petOptions}
+        <input
+          type="date"
+          id="checkOut"
+          required
+        >
+      </div>
 
-                </select>
+      <div class="form-group">
+        <label>ประเภทบริการ</label>
 
-            </div>
+        <select id="serviceType" required>
 
+          <option value="Standard Boarding">
+            Standard Boarding
+          </option>
 
-            <div class="form-group">
+          <option value="Premium Boarding">
+            Premium Boarding
+          </option>
 
-                <label>วันที่เช็กอิน</label>
+          <option value="Day Care">
+            Day Care
+          </option>
 
-                <input
-                    type="date"
-                    id="checkIn"
-                    required
-                >
+        </select>
+      </div>
 
-            </div>
+      <div class="form-group">
+        <label>ราคาต่อวัน</label>
 
+        <input
+          type="number"
+          id="pricePerDay"
+          value="300"
+          min="0"
+          required
+        >
+      </div>
 
-            <div class="form-group">
+      <div class="form-actions">
 
-                <label>วันที่เช็กเอาต์</label>
+        <button
+          type="button"
+          class="cancel-button"
+          onclick="closeModal()">
+          ยกเลิก
+        </button>
 
-                <input
-                    type="date"
-                    id="checkOut"
-                    required
-                >
+        <button
+          type="submit"
+          class="primary-button">
+          สร้างการจอง
+        </button>
 
-            </div>
+      </div>
 
-
-            <div class="form-group">
-
-                <label>ประเภทบริการ</label>
-
-                <select id="serviceType">
-
-                    <option value="Standard Boarding">
-                        Standard Boarding
-                    </option>
-
-                    <option value="Premium Boarding">
-                        Premium Boarding
-                    </option>
-
-                    <option value="Day Care">
-                        Day Care
-                    </option>
-
-                </select>
-
-            </div>
-
-
-            <div class="form-group">
-
-                <label>ราคาต่อวัน</label>
-
-                <input
-                    type="number"
-                    id="pricePerDay"
-                    value="300"
-                    min="0"
-                    required
-                >
-
-            </div>
-
-
-            <div class="form-actions">
-
-                <button
-                    type="button"
-                    class="cancel-button"
-                    onclick="closeModal()">
-                    ยกเลิก
-                </button>
-
-                <button
-                    type="submit"
-                    class="primary-button">
-                    สร้างการจอง
-                </button>
-
-            </div>
-
-        </form>
-
-    `;
+    </form>
+  `;
 
   openModal();
 }
 
+// ================= SAVE BOOKING =================
+
 async function saveBooking(event) {
   event.preventDefault();
 
+  const petId = Number(
+    document.getElementById("bookingPet").value,
+  );
+
+  const checkInDate =
+    document.getElementById("checkIn").value;
+
+  const checkOutDate =
+    document.getElementById("checkOut").value;
+
+  const serviceType =
+    document.getElementById("serviceType").value;
+
+  const pricePerDay = Number(
+    document.getElementById("pricePerDay").value,
+  );
+
+  if (!petId || !checkInDate || !checkOutDate) {
+    alert("กรุณากรอกข้อมูลการจองให้ครบ");
+    return;
+  }
+
+  if (checkOutDate <= checkInDate) {
+    alert("วันที่เช็กเอาต์ต้องมากกว่าวันที่เช็กอิน");
+    return;
+  }
+
+  if (pricePerDay < 0) {
+    alert("ราคาต่อวันต้องไม่ติดลบ");
+    return;
+  }
+
   const data = {
-    petId: Number(document.getElementById("bookingPet").value),
-
-    checkInDate: document.getElementById("checkIn").value,
-
-    checkOutDate: document.getElementById("checkOut").value,
-
-    serviceType: document.getElementById("serviceType").value,
-
-    pricePerDay: Number(document.getElementById("pricePerDay").value),
+    petId,
+    checkInDate,
+    checkOutDate,
+    serviceType,
+    pricePerDay,
   };
 
   try {
-    const response = await fetch(`${API}/bookings`, {
+    await fetchJSON(`${API}/bookings`, {
       method: "POST",
-
       headers: {
         "Content-Type": "application/json",
       },
-
       body: JSON.stringify(data),
     });
 
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.error || "ไม่สามารถสร้างการจองได้");
-    }
-
     closeModal();
-
     await loadAllData();
+
+    alert("สร้างการจองเรียบร้อยแล้ว");
   } catch (error) {
+    console.error("Save booking error:", error);
     alert(error.message);
   }
 }
@@ -885,28 +933,56 @@ async function changeBookingStatus(id) {
     return;
   }
 
+  const validStatuses = [
+    "Confirmed",
+    "Pending",
+    "Completed",
+    "Cancelled",
+  ];
+
+  const normalizedStatus = validStatuses.find(
+    (item) => item.toLowerCase() === status.trim().toLowerCase(),
+  );
+
+  if (!normalizedStatus) {
+    alert(
+      "สถานะไม่ถูกต้อง\n\n" +
+        "กรุณาใช้:\n" +
+        "Confirmed\n" +
+        "Pending\n" +
+        "Completed\n" +
+        "Cancelled",
+    );
+
+    return;
+  }
+
   try {
-    const response = await fetch(`${API}/bookings/${id}`, {
-      method: "PUT",
+    await fetchJSON(
+      `${API}/bookings/${encodeURIComponent(id)}`,
+      {
+        method: "PUT",
 
-      headers: {
-        "Content-Type": "application/json",
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify({
+          status: normalizedStatus,
+        }),
       },
-
-      body: JSON.stringify({
-        status: status,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error("ไม่สามารถเปลี่ยนสถานะได้");
-    }
+    );
 
     await loadAllData();
+
+    alert("เปลี่ยนสถานะเรียบร้อยแล้ว");
   } catch (error) {
+    console.error("Change booking status error:", error);
     alert(error.message);
   }
 }
+
+// ================= DELETE BOOKING =================
 
 async function deleteBooking(id) {
   if (!confirm("ต้องการลบการจองนี้ใช่หรือไม่?")) {
@@ -914,16 +990,18 @@ async function deleteBooking(id) {
   }
 
   try {
-    const response = await fetch(`${API}/bookings/${id}`, {
-      method: "DELETE",
-    });
-
-    if (!response.ok) {
-      throw new Error("ไม่สามารถลบการจองได้");
-    }
+    await fetchJSON(
+      `${API}/bookings/${encodeURIComponent(id)}`,
+      {
+        method: "DELETE",
+      },
+    );
 
     await loadAllData();
+
+    alert("ลบการจองเรียบร้อยแล้ว");
   } catch (error) {
+    console.error("Delete booking error:", error);
     alert(error.message);
   }
 }
@@ -931,16 +1009,30 @@ async function deleteBooking(id) {
 // ================= MODAL =================
 
 function openModal() {
-  document.getElementById("modalOverlay").classList.add("show");
+  const overlay = document.getElementById("modalOverlay");
+
+  if (overlay) {
+    overlay.classList.add("show");
+  }
 }
 
 function closeModal() {
-  document.getElementById("modalOverlay").classList.remove("show");
+  const overlay = document.getElementById("modalOverlay");
+
+  if (overlay) {
+    overlay.classList.remove("show");
+  }
 }
 
-document.getElementById("modalOverlay").addEventListener("click", (event) => {
-  if (event.target.id === "modalOverlay") {
-    closeModal();
+document.addEventListener("DOMContentLoaded", () => {
+  const modalOverlay = document.getElementById("modalOverlay");
+
+  if (modalOverlay) {
+    modalOverlay.addEventListener("click", (event) => {
+      if (event.target.id === "modalOverlay") {
+        closeModal();
+      }
+    });
   }
 });
 
@@ -955,7 +1047,9 @@ function formatMoney(value) {
 }
 
 function statusBadge(status) {
-  const normalized = String(status || "").toLowerCase();
+  const normalized = String(status || "")
+    .trim()
+    .toLowerCase();
 
   let className = "pending";
 
@@ -972,10 +1066,10 @@ function statusBadge(status) {
   }
 
   return `
-        <span class="badge ${className}">
-            ${escapeHTML(status || "Pending")}
-        </span>
-    `;
+    <span class="badge ${className}">
+      ${escapeHTML(status || "Pending")}
+    </span>
+  `;
 }
 
 function escapeHTML(value) {
