@@ -3,22 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>PetCare Boarding</title>
-
     <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
     <div class="app">
 
         <!-- SIDEBAR -->
         <aside class="sidebar">
-
             <div class="logo">
                 <div class="logo-icon">🐾</div>
-
                 <div>
                     <h1>PetCare</h1>
                     <span>Boarding System</span>
@@ -26,59 +21,47 @@
             </div>
 
             <nav class="menu">
-
                 <button class="menu-item active" onclick="showPage('dashboard', this)">
                     <span>📊</span>
                     <span>Dashboard</span>
                 </button>
-
                 <button class="menu-item" onclick="showPage('customers', this)">
                     <span>👤</span>
                     <span>ลูกค้า</span>
                 </button>
-
                 <button class="menu-item" onclick="showPage('pets', this)">
                     <span>🐶</span>
                     <span>สัตว์เลี้ยง</span>
                 </button>
-
                 <button class="menu-item" onclick="showPage('boarding', this)">
                     <span>🐾</span>
                     <span>รับฝากสัตว์</span>
                 </button>
-
                 <button class="menu-item" onclick="showPage('bookings', this)">
                     <span>📅</span>
                     <span>การจอง</span>
                 </button>
-
             </nav>
 
             <div class="sidebar-bottom">
                 <div class="staff-card">
                     <div class="staff-avatar">A</div>
-
                     <div>
                         <strong>Staff</strong>
                         <small>เจ้าหน้าที่</small>
                     </div>
                 </div>
             </div>
-
         </aside>
-
 
         <!-- MAIN -->
         <main class="main">
 
             <!-- HEADER -->
             <header class="header">
-
                 <div>
                     <h2 id="pageTitle">Dashboard</h2>
-                    <p id="pageDescription">
-                        ภาพรวมระบบรับฝากเลี้ยงสัตว์
-                    </p>
+                    <p id="pageDescription">ภาพรวมระบบรับฝากเลี้ยงสัตว์</p>
                 </div>
 
                 <div class="header-right">
@@ -86,125 +69,101 @@
                         <span class="status-dot"></span>
                         System Online
                     </div>
-
                     <div class="date" id="currentDate"></div>
                 </div>
-
             </header>
-
 
             <!-- ================= DASHBOARD ================= -->
             <section id="dashboard" class="page active-page">
-
                 <div class="welcome">
                     <div>
                         <span class="welcome-label">WELCOME BACK 👋</span>
                         <h3>ระบบรับฝากเลี้ยงสัตว์</h3>
                         <p>จัดการลูกค้า สัตว์เลี้ยง และการจองได้จากที่เดียว</p>
                     </div>
-
-                    <div class="welcome-icon">
-                        🐕
-                    </div>
+                    <div class="welcome-icon">🐕</div>
                 </div>
 
+                <!-- DASHBOARD FILTER BAR -->
+                <div class="dashboard-filter-bar" style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                    <label for="timeRangeFilter" style="font-weight: bold; color: #4b5563;">📅 เลือกช่วงเวลาดูสถิติ:</label>
+                    <select id="timeRangeFilter" onchange="updateDashboard()" style="padding: 8px 12px; border-radius: 8px; border: 1px solid #d1d5db; background: white; font-size: 14px; cursor: pointer;">
+                        <option value="today">วันนี้</option>
+                        <option value="month" selected>เดือนนี้</option>
+                        <option value="year">ปีนี้</option>
+                        <option value="all">ทั้งหมด</option>
+                    </select>
+                </div>
 
                 <div class="stats">
-
                     <div class="stat-card">
                         <div class="stat-icon purple">👤</div>
-
                         <div>
-                            <span>ลูกค้าทั้งหมด</span>
+                            <span>ลูกค้าใหม่ (ช่วงนี้)</span>
                             <strong id="customerCount">0</strong>
                         </div>
                     </div>
 
-
                     <div class="stat-card">
                         <div class="stat-icon blue">🐾</div>
-
                         <div>
                             <span>สัตว์เลี้ยงทั้งหมด</span>
                             <strong id="petCount">0</strong>
                         </div>
                     </div>
 
-
                     <div class="stat-card">
                         <div class="stat-icon orange">📅</div>
-
                         <div>
-                            <span>การจองทั้งหมด</span>
+                            <span>การจอง (ช่วงนี้)</span>
                             <strong id="bookingCount">0</strong>
                         </div>
                     </div>
 
-
                     <div class="stat-card">
                         <div class="stat-icon green">💰</div>
-
                         <div>
-                            <span>รายได้ทั้งหมด</span>
+                            <span>รายได้ (ช่วงนี้)</span>
                             <strong id="revenue">฿0</strong>
                         </div>
                     </div>
-
                 </div>
 
-
                 <div class="dashboard-grid">
-
                     <div class="panel">
-
                         <div class="panel-header">
                             <div>
                                 <h3>การจองล่าสุด</h3>
-                                <p>รายการรับฝากล่าสุด</p>
+                                <p>รายการรับฝากล่าสุดในช่วงเวลานี้</p>
                             </div>
-
-                            <button class="text-button"
-                                    onclick="showPage('bookings')">
+                            <button class="text-button" onclick="showPage('bookings')">
                                 ดูทั้งหมด →
                             </button>
                         </div>
 
                         <div id="recentBookings" class="empty-state">
                             <div>📅</div>
-                            <p>ยังไม่มีข้อมูลการจอง</p>
+                            <p>ยังไม่มีข้อมูลการจองในช่วงเวลานี้</p>
                         </div>
-
                     </div>
-
                 </div>
-
             </section>
-
 
             <!-- ================= CUSTOMERS ================= -->
             <section id="customers" class="page">
-
                 <div class="page-top">
-
                     <div>
                         <h3>จัดการลูกค้า</h3>
                         <p>ข้อมูลเจ้าของสัตว์เลี้ยง</p>
                     </div>
-
-                    <button class="primary-button"
-                            onclick="openCustomerModal()">
+                    <button class="primary-button" onclick="openCustomerModal()">
                         + เพิ่มลูกค้า
                     </button>
-
                 </div>
 
-
                 <div class="panel">
-
                     <div class="table-wrapper">
-
                         <table>
-
                             <thead>
                                 <tr>
                                     <th>ID</th>
@@ -213,43 +172,27 @@
                                     <th>จัดการ</th>
                                 </tr>
                             </thead>
-
-                            <tbody id="customerTable">
-                            </tbody>
-
+                            <tbody id="customerTable"></tbody>
                         </table>
-
                     </div>
-
                 </div>
-
             </section>
-
 
             <!-- ================= PETS ================= -->
             <section id="pets" class="page">
-
                 <div class="page-top">
-
                     <div>
                         <h3>จัดการสัตว์เลี้ยง</h3>
                         <p>ข้อมูลสัตว์เลี้ยงของลูกค้า</p>
                     </div>
-
-                    <button class="primary-button"
-                            onclick="openPetModal()">
+                    <button class="primary-button" onclick="openPetModal()">
                         + เพิ่มสัตว์เลี้ยง
                     </button>
-
                 </div>
 
-
                 <div class="panel">
-
                     <div class="table-wrapper">
-
                         <table>
-
                             <thead>
                                 <tr>
                                     <th>ID</th>
@@ -261,23 +204,14 @@
                                     <th>จัดการ</th>
                                 </tr>
                             </thead>
-
-                            <tbody id="petTable">
-                            </tbody>
-
+                            <tbody id="petTable"></tbody>
                         </table>
-
                     </div>
-
                 </div>
-
             </section>
-
-
 
             <!-- ================= QUICK BOARDING ================= -->
             <section id="boarding" class="page">
-
                 <div class="boarding-hero">
                     <div class="boarding-hero-text">
                         <div class="boarding-kicker">PET CARE • CHECK-IN</div>
@@ -288,7 +222,6 @@
                 </div>
 
                 <form id="quickBoardingForm" class="boarding-shell" onsubmit="saveQuickBoarding(event)">
-
                     <div class="boarding-main">
 
                         <!-- CUSTOMER -->
@@ -299,8 +232,7 @@
                                     <h3>เลือกลูกค้า</h3>
                                     <p>ค้นหาลูกค้าเก่าจากชื่อหรือเบอร์โทร</p>
                                 </div>
-                                <button type="button" class="outline-button"
-                                        onclick="toggleQuickNewCustomer()">＋ ลูกค้าใหม่</button>
+                                <button type="button" class="outline-button" onclick="toggleQuickNewCustomer()">＋ ลูกค้าใหม่</button>
                             </div>
 
                             <div class="customer-search-box">
@@ -314,28 +246,27 @@
                             </div>
 
                             <div class="search-hint">พิมพ์อย่างน้อย 1 ตัวอักษร ระบบจะแสดงลูกค้าที่ตรงกัน</div>
-
                             <div id="quickCustomerResults" class="customer-results-panel"></div>
 
                             <div id="quickNewCustomerBox" class="inline-new-box">
                                 <div class="inline-title">เพิ่มข้อมูลลูกค้าใหม่</div>
                                 <div class="form-grid-2">
                                     <div class="form-group">
-                                        <label>ชื่อ-นามสกุล <b>*</b></label>
+                                        <label for="quickNewCustomerName">ชื่อ-นามสกุล <b>*</b></label>
                                         <input id="quickNewCustomerName" type="text" placeholder="เช่น สมชาย ใจดี">
                                     </div>
                                     <div class="form-group">
-                                        <label>เบอร์โทรศัพท์ <b>*</b></label>
+                                        <label for="quickNewCustomerPhone">เบอร์โทรศัพท์ <b>*</b></label>
                                         <input id="quickNewCustomerPhone" type="tel" placeholder="08xxxxxxxx">
                                     </div>
                                 </div>
                                 <div class="form-grid-2">
                                     <div class="form-group">
-                                        <label>Email</label>
+                                        <label for="quickNewCustomerEmail">Email</label>
                                         <input id="quickNewCustomerEmail" type="email" placeholder="example@email.com">
                                     </div>
                                     <div class="form-group">
-                                        <label>ที่อยู่</label>
+                                        <label for="quickNewCustomerAddress">ที่อยู่</label>
                                         <input id="quickNewCustomerAddress" type="text" placeholder="ที่อยู่">
                                     </div>
                                 </div>
@@ -364,7 +295,7 @@
 
                             <div id="quickPetArea">
                                 <div class="form-group pet-select-group">
-                                    <label>สัตว์เลี้ยงเดิม</label>
+                                    <label for="quickPetSelect">สัตว์เลี้ยงเดิม</label>
                                     <select id="quickPetSelect" onchange="selectQuickPet()">
                                         <option value="">เลือกสัตว์เลี้ยงของลูกค้า...</option>
                                     </select>
@@ -397,11 +328,11 @@
 
                                     <div class="form-grid-2">
                                         <div class="form-group">
-                                            <label>ชื่อสัตว์ <b>*</b></label>
-                                            <input id="quickNewPetName" type="text" placeholder="เช่น มะลิ">
+                                            <label for="quickNewPetName">ชื่อสัตว์ <b>*</b></label>
+                                            <input id="quickNewPetName" type="text" placeholder="เช่น มะลิ" oninput="updateQuickNewPetPreview()">
                                         </div>
                                         <div class="form-group">
-                                            <label>ประเภทสัตว์ <b>*</b></label>
+                                            <label for="quickNewPetType">ประเภทสัตว์ <b>*</b></label>
                                             <select id="quickNewPetType" onchange="updateQuickNewPetPreview()">
                                                 <option value="">เลือกประเภทสัตว์เลี้ยง</option>
                                                 <option value="Dog">🐶 สุนัข</option>
@@ -428,11 +359,11 @@
 
                                     <div class="form-grid-2">
                                         <div class="form-group">
-                                            <label>สายพันธุ์</label>
+                                            <label for="quickNewPetBreed">สายพันธุ์</label>
                                             <input id="quickNewPetBreed" type="text" placeholder="เช่น Golden Retriever">
                                         </div>
                                         <div class="form-group">
-                                            <label>อายุ</label>
+                                            <label for="quickNewPetAge">อายุ</label>
                                             <input id="quickNewPetAge" type="number" min="0" placeholder="อายุเป็นปี">
                                         </div>
                                     </div>
@@ -452,18 +383,18 @@
 
                             <div class="form-grid-2">
                                 <div class="form-group">
-                                    <label>วันเช็กอิน <b>*</b></label>
+                                    <label for="quickCheckIn">วันเช็กอิน <b>*</b></label>
                                     <input id="quickCheckIn" type="date" required onchange="updateQuickPrice()">
                                 </div>
                                 <div class="form-group">
-                                    <label>วันเช็กเอาต์ <b>*</b></label>
+                                    <label for="quickCheckOut">วันเช็กเอาต์ <b>*</b></label>
                                     <input id="quickCheckOut" type="date" required onchange="updateQuickPrice()">
                                 </div>
                             </div>
 
                             <div class="form-grid-2">
                                 <div class="form-group">
-                                    <label>บริการ <b>*</b></label>
+                                    <label for="quickServiceType">บริการ <b>*</b></label>
                                     <select id="quickServiceType" onchange="updateQuickPrice()">
                                         <option value="ฝากเลี้ยงมาตรฐาน" data-price="300">🏠 ฝากเลี้ยงมาตรฐาน — ฿300/วัน</option>
                                         <option value="ฝากเลี้ยงพิเศษ" data-price="450">⭐ ฝากเลี้ยงพิเศษ — ฿450/วัน</option>
@@ -471,7 +402,7 @@
                                     </select>
                                 </div>
                                 <div class="form-group">
-                                    <label>ราคา / วัน</label>
+                                    <label for="quickPricePerDay">ราคา / วัน</label>
                                     <div class="price-input">
                                         <span>฿</span>
                                         <input id="quickPricePerDay" type="number" min="0" value="300" oninput="updateQuickPrice()">
@@ -480,7 +411,7 @@
                             </div>
 
                             <div class="form-group">
-                                <label>หมายเหตุเพิ่มเติม</label>
+                                <label for="quickNotes">หมายเหตุเพิ่มเติม</label>
                                 <textarea id="quickNotes" rows="3" placeholder="เช่น แพ้อาหาร, กินอาหารเวลา 18:00 น., ต้องให้ยา..."></textarea>
                             </div>
                         </div>
@@ -538,28 +469,19 @@
 
             <!-- ================= BOOKINGS ================= -->
             <section id="bookings" class="page">
-
                 <div class="page-top">
-
                     <div>
                         <h3>การจองรับฝาก</h3>
                         <p>จัดการรายการรับฝากสัตว์เลี้ยง</p>
                     </div>
-
-                    <button class="primary-button"
-                            onclick="openBookingModal()">
+                    <button class="primary-button" onclick="openBookingModal()">
                         + สร้างการจอง
                     </button>
-
                 </div>
 
-
                 <div class="panel">
-
                     <div class="table-wrapper">
-
                         <table>
-
                             <thead>
                                 <tr>
                                     <th>ID</th>
@@ -573,49 +495,29 @@
                                     <th>จัดการ</th>
                                 </tr>
                             </thead>
-
-                            <tbody id="bookingTable">
-                            </tbody>
-
+                            <tbody id="bookingTable"></tbody>
                         </table>
-
                     </div>
-
                 </div>
-
             </section>
 
         </main>
 
     </div>
 
-
     <!-- ================= MODAL ================= -->
-
     <div id="modalOverlay" class="modal-overlay">
-
         <div class="modal">
-
             <div class="modal-header">
-
                 <div>
                     <h3 id="modalTitle">เพิ่มข้อมูล</h3>
                     <p id="modalSubtitle">กรอกข้อมูลด้านล่าง</p>
                 </div>
-
-                <button class="close-button"
-                        onclick="closeModal()">
-                    ×
-                </button>
-
+                <button class="close-button" onclick="closeModal()">×</button>
             </div>
-
             <div id="modalBody"></div>
-
         </div>
-
     </div>
-
 
     <script src="app.js"></script>
 
